@@ -69,6 +69,39 @@
     font-size: 12px;
     margin-top: 16px;
   }
+  .risco {
+    margin-top: 16px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .risco.seguro {
+    background: rgba(34,197,94,0.15);
+    color: #4ade80;
+    border: 1px solid rgba(34,197,94,0.3);
+  }
+  .risco.perigoso {
+    background: rgba(251,146,60,0.15);
+    color: #fb923c;
+    border: 1px solid rgba(251,146,60,0.3);
+  }
+  .risco.muito-perigoso {
+    background: rgba(239,68,68,0.18);
+    color: #f87171;
+    border: 1px solid rgba(239,68,68,0.4);
+    animation: pulse 1.4s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
 </style>
 </head>
 <body>
@@ -78,50 +111,97 @@
   <div id="lista">
     <div class="status-row"><span class="name">Carregando...</span></div>
   </div>
+
+  <div id="risco" class="risco"></div>
+
   <div class="updated" id="updated"></div>
 </div>
 
 <script>
-// 1) Cole aqui o link "pub?output=csv" que você pegou no Google Sheets:
-const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4ljAo3Ez6jnxTpzUIRKZanU623tmGeyfIAz29PC3vauHZj3o4c0ud_PvIU-wokyKh0cTSf7rqoxrq/pub?gid=0&single=true&output=csv";
+// ID da planilha (extraído do link publicado)
+const SHEET_ID = "2PACX-1vQ4ljAo3Ez6jnxTpzUIRKZanU623tmGeyfIAz29PC3vauHZj3o4c0ud_PvIU-wokyKh0cTSf7rqoxrq";
+
+// Link CSV publicado (tentativa principal)
+const CSV_URL = `https://docs.google.com/spreadsheets/d/e/${SHEET_ID}/pub?gid=0&single=true&output=csv`;
 
 // Nomes que queremos exibir, na ordem
 const NOMES = ["Ernesto46", "Coordenador01"];
 
-async function carregarStatus() {
-  const lista = document.getElementById("lista");
-  try {
-    const resp = await fetch(CSV_URL + "&t=" + Date.now()); // evita cache
-    const texto = await resp.text();
+function mostrarErro(msg) {
+  document.getElementById("lista").innerHTML =
+    `<div class="status-row"><span class="name">Erro: ${msg}</span></div>`;
+}
 
-    // parse simples de CSV (Nome,Online)
+function renderizar(dados) {
+  const lista = document.getElementById("lista");
+  lista.innerHTML = "";
+
+  let qtdOnline = 0;
+
+  NOMES.forEach(nome => {
+    const valor = dados[nome];
+    let classe = "unknown", texto = "Sem dados";
+    if (valor === "SIM") { classe = "online"; texto = "Online"; qtdOnline++; }
+    else if (valor === "NAO" || valor === "NÃO") { classe = "offline"; texto = "Offline"; }
+
+    const row = document.createElement("div");
+    row.className = "status-row";
+    row.innerHTML = `
+      <span class="name">${nome}</span>
+      <span class="badge ${classe}"><span class="dot"></span>${texto}</span>
+    `;
+    lista.appendChild(row);
+  });
+
+  // Sinalização de risco pra dar fila na ranqueada
+  const riscoEl = document.getElementById("risco");
+  if (qtdOnline === 2) {
+    riscoEl.className = "risco muito-perigoso";
+    riscoEl.textContent = "⚠️ MUITO PERIGOSO — não dê fila!";
+  } else if (qtdOnline === 1) {
+    riscoEl.className = "risco perigoso";
+    riscoEl.textContent = "⚠️ Perigoso — cuidado ao dar fila";
+  } else {
+    riscoEl.className = "risco seguro";
+    riscoEl.textContent = "✅ Seguro para dar fila";
+  }
+
+  document.getElementById("updated").textContent =
+    "Atualizado em " + new Date().toLocaleString("pt-BR");
+}
+
+async function buscarComTimeout(url, ms) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  try {
+    const resp = await fetch(url, { signal: controller.signal, cache: "no-store" });
+    clearTimeout(timer);
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    return await resp.text();
+  } catch (e) {
+    clearTimeout(timer);
+    throw e;
+  }
+}
+
+async function carregarStatus() {
+  try {
+    const texto = await buscarComTimeout(CSV_URL + "&t=" + Date.now(), 8000);
+
     const linhas = texto.trim().split("\n").map(l => l.split(","));
     const dados = {};
     linhas.forEach(([nome, online]) => {
       if (nome && online) dados[nome.trim()] = online.trim().toUpperCase();
     });
-
-    lista.innerHTML = "";
-    NOMES.forEach(nome => {
-      const valor = dados[nome];
-      let classe = "unknown", texto = "Sem dados";
-      if (valor === "SIM") { classe = "online"; texto = "Online"; }
-      else if (valor === "NAO" || valor === "NÃO") { classe = "offline"; texto = "Offline"; }
-
-      const row = document.createElement("div");
-      row.className = "status-row";
-      row.innerHTML = `
-        <span class="name">${nome}</span>
-        <span class="badge ${classe}"><span class="dot"></span>${texto}</span>
-      `;
-      lista.appendChild(row);
-    });
-
-    document.getElementById("updated").textContent =
-      "Atualizado em " + new Date().toLocaleString("pt-BR");
+    renderizar(dados);
 
   } catch (e) {
-    lista.innerHTML = '<div class="status-row"><span class="name">Erro ao carregar dados</span></div>';
+    console.error("Falha ao buscar CSV:", e);
+    if (e.name === "AbortError") {
+      mostrarErro("tempo esgotado (provável bloqueio de CORS pelo Google)");
+    } else {
+      mostrarErro(e.message || "falha de rede");
+    }
   }
 }
 
