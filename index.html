@@ -123,11 +123,11 @@
 </div>
 
 <script>
-// ID da planilha (extraído do link publicado)
+// ID da planilha
 const SHEET_ID = "2PACX-1vQ4ljAo3Ez6jnxTpzUIRKZanU623tmGeyfIAz29PC3vauHZj3o4c0ud_PvIU-wokyKh0cTSf7rqoxrq";
 
-// Link CSV publicado (tentativa principal)
-const CSV_URL = 'https://script.google.com/macros/s/AKfycbyDPtjk8_4QXwO99Aw5KGeS7WwMlOWkMijBYNYgpzO5xm9eS5NKtXTmrzaEEtLwlfEG/exec';
+// Link da Web App do Apps Script
+const API_URL = 'https://script.google.com/macros/s/AKfycbyDPtjk8_4QXwO99Aw5KGeS7WwMlOWkMijBYNYgpzO5xm9eS5NKtXTmrzaEEtLwlfEG/exec';
 
 // Nomes que queremos exibir, na ordem
 const NOMES = ["Ernesto46", "Coordenador01", "[NXS]OverTK", "Igorque", "MEDICA_EDUARDA", "DEEJAY", "Powerguido"];
@@ -182,10 +182,13 @@ async function buscarComTimeout(url, ms) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), ms);
   try {
+    // Adicionado tratamento para não guardar cache no navegador
     const resp = await fetch(url, { signal: controller.signal, cache: "no-store" });
     clearTimeout(timer);
     if (!resp.ok) throw new Error("HTTP " + resp.status);
-    return await resp.text();
+    
+    // Retorna o JSON diretamente!
+    return await resp.json();
   } catch (e) {
     clearTimeout(timer);
     throw e;
@@ -194,27 +197,24 @@ async function buscarComTimeout(url, ms) {
 
 async function carregarStatus() {
   try {
-    const texto = await buscarComTimeout(CSV_URL + "?t=" + Date.now(), 8000);
+    // CORREÇÃO: Alterado de &t= para ?t= na URL
+    const dados = await buscarComTimeout(API_URL + "?t=" + Date.now(), 8000);
 
-    const linhas = texto.trim().split("\n").map(l => l.split(","));
-    const dados = {};
-    linhas.forEach(([nome, online]) => {
-      if (nome && online) dados[nome.trim()] = online.trim().toUpperCase();
-    });
+    // Como o Apps Script já devolve o objeto {"Nome": "SIM", ...}, passamos direto para renderizar
     renderizar(dados);
 
   } catch (e) {
-    console.error("Falha ao buscar CSV:", e);
+    console.error("Falha ao buscar dados:", e);
     if (e.name === "AbortError") {
-      mostrarErro("tempo esgotado (provável bloqueio de CORS pelo Google)");
+      mostrarErro("Tempo esgotado (provável bloqueio de CORS ou demora do Apps Script)");
     } else {
-      mostrarErro(e.message || "falha de rede");
+      mostrarErro(e.message || "Falha de rede");
     }
   }
 }
 
 carregarStatus();
-// Atualiza automaticamente a cada 5 minutos (bem mais frequente que 1 hora)
+// Atualiza automaticamente a cada 5 minutos
 setInterval(carregarStatus, 5 * 60 * 1000);
 </script>
 
