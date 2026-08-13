@@ -194,7 +194,7 @@ async function buscarComTimeout(url, ms) {
 
 async function carregarStatus() {
   try {
-    const texto = await buscarComTimeout(CSV_URL + "&t=" + Date.now(), 8000);
+    const texto = await buscarComTimeout(CSV_URL + "?t=" + Date.now(), 8000);
 
     const linhas = texto.trim().split("\n").map(l => l.split(","));
     const dados = {};
