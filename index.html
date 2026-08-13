@@ -88,9 +88,14 @@
     border: 1px solid rgba(34,197,94,0.3);
   }
   .risco.perigoso {
-    background: rgba(251,146,60,0.15);
+    background: rgba(250,204,21,0.15);
+    color: #facc15;
+    border: 1px solid rgba(250,204,21,0.3);
+  }
+  .risco.alerta-laranja {
+    background: rgba(251,146,60,0.18);
     color: #fb923c;
-    border: 1px solid rgba(251,146,60,0.3);
+    border: 1px solid rgba(251,146,60,0.4);
   }
   .risco.muito-perigoso {
     background: rgba(239,68,68,0.18);
@@ -125,7 +130,7 @@ const SHEET_ID = "2PACX-1vQ4ljAo3Ez6jnxTpzUIRKZanU623tmGeyfIAz29PC3vauHZj3o4c0ud
 const CSV_URL = `https://docs.google.com/spreadsheets/d/e/${SHEET_ID}/pub?gid=0&single=true&output=csv`;
 
 // Nomes que queremos exibir, na ordem
-const NOMES = ["Ernesto46", "Coordenador01"];
+const NOMES = ["Ernesto46", "Coordenador01", "[NXS]OverTK"];
 
 function mostrarErro(msg) {
   document.getElementById("lista").innerHTML =
@@ -155,9 +160,12 @@ function renderizar(dados) {
 
   // Sinalização de risco pra dar fila na ranqueada
   const riscoEl = document.getElementById("risco");
-  if (qtdOnline === 2) {
+  if (qtdOnline === 3) {
     riscoEl.className = "risco muito-perigoso";
     riscoEl.textContent = "⚠️ MUITO PERIGOSO — não dê fila!";
+  } else if (qtdOnline === 2) {
+    riscoEl.className = "risco alerta-laranja";
+    riscoEl.textContent = "🟠 Alerta — torça para cair no time inimigo";
   } else if (qtdOnline === 1) {
     riscoEl.className = "risco perigoso";
     riscoEl.textContent = "⚠️ Perigoso — cuidado ao dar fila";
