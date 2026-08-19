@@ -129,16 +129,12 @@
 </div>
 
 <script>
-// Substitua pelo ID REAL da sua planilha (o que fica entre /d/ e /edit na URL)
 const SPREADSHEET_ID = "14nxImR1W0hphnVsbjQvBjxJlIiBRDH8Zg6h4_sxtwxk";
 
-// URL exportadora do Google Visualization API (liberada para CORS)
 const CSV_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv`;
 
-// Nomes que queremos exibir, na ordem
 const NOMES = ["Ernesto46", "Coordenador01", "[NXS]OverTK", "DEEJAY", "Powerguido"];
 
-// Imagem especial usada no lugar da bolinha do OverTK quando ele está offline
 const OVERTK_IMG = "https://images-ext-1.discordapp.net/external/lXiec6foXsXaSIEG9iwfeiqXJ2kDunBVRXgfu_o_xiM/https/media.tenor.com/YniopqJYMIkAAAAe/gato-rindo.png?format=webp&quality=lossless";
 
 function mostrarErro(msg) {
@@ -165,13 +161,11 @@ function renderizar(dados) {
       texto = "Offline"; 
     }
 
-    // OverTK sempre aparece como banido, independente da planilha
     if (nome === "[NXS]OverTK") {
       classe = "offline";
       texto = "Banido";
     }
 
-    // Define o "dot" normal, exceto para o OverTK, que usa a imagem
     let dotHtml = `<span class="dot"></span>`;
     if (nome === "[NXS]OverTK") {
       dotHtml = `<img src="${OVERTK_IMG}" class="dot-img" alt="status">`;
@@ -186,7 +180,6 @@ function renderizar(dados) {
     lista.appendChild(row);
   });
 
-  // Sinalização de risco pra dar fila na ranqueada
   const riscoEl = document.getElementById("risco");
   if (qtdOnline >= 3) {
     riscoEl.className = "risco muito-perigoso";
@@ -222,17 +215,14 @@ async function buscarComTimeout(url, ms) {
 
 async function carregarStatus() {
   try {
-    // Adiciona o timestamp no final da URL para burlar cache do navegador
     const texto = await buscarComTimeout(CSV_URL + "&_=" + Date.now(), 8000);
 
-    // Trata quebras de linha e limpa aspas duplas adicionadas pelo Google CSV
     const linhas = texto.split(/\r?\n/);
     const dados = {};
 
     linhas.forEach(linha => {
       if (!linha.trim()) return;
       
-      // Limpa as aspas que o Google coloca em volta de cada célula
       const colunas = linha.split(",").map(col => col.replace(/^"|"$/g, "").trim());
       
       const nome = colunas[0];
@@ -256,7 +246,6 @@ async function carregarStatus() {
 }
 
 carregarStatus();
-// Atualiza a cada 1 minuto
 setInterval(carregarStatus, 60 * 1000);
 </script>
 
